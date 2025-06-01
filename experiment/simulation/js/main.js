@@ -1,417 +1,453 @@
-//Your JavaScript goes in here
- // System state
-    let powerOn = false;
-    let connections = [];
-    let selectedPort = null;
-    let tempConnection = null;
-    let inputsLocked = false;
+// System state
+let powerOn = false;
+let connections = [];
+let selectedPort = null;
+let tempConnection = null;
+let inputsLocked = false;
 
-    // System parameters
-    let chipRate = 10; // MHz
-    let sequenceLength = 7;
-    let carrierFrequency = 1; // MHz
-    let carrierAmplitude = 5; // V
-    
-    // Binary input state (8 bits)
-    const binaryBits = new Array(8).fill(false);
-    
-    // DOM elements
-    const powerBtn = document.getElementById('powerBtn');
-    const resetConnectionsBtn = document.getElementById('resetConnectionsBtn');
-    const showOscilloscopeBtn = document.getElementById('showOscilloscopeBtn');
-    const statusMessage = document.getElementById('statusMessage');
-    const oscilloscopeModal = document.getElementById('oscilloscopeModal');
-    const oscilloscopeClose = document.getElementById('oscilloscopeClose');
-    const oscilloscopeDisplay = document.getElementById('oscilloscopeDisplay');
-    const oscilloscopeCtx = oscilloscopeDisplay.getContext('2d');
-    
-    // Parameter display elements
-    const chipRateVal = document.getElementById('chipRateVal');
-    const seqLengthVal = document.getElementById('seqLengthVal');
-    const carrierFreqVal = document.getElementById('carrierFreqVal');
-    const carrierAmpVal = document.getElementById('carrierAmpVal');
-    
-    // Waveform selection elements
-    const waveformInput = document.getElementById('inputWave');
-    const waveformPN = document.getElementById('pnWave');
-    const waveformSpread = document.getElementById('spreadWave');
-    const waveformCarrier = document.getElementById('carrierWave');
-    const waveformOutput = document.getElementById('outputWave');
+// System parameters
+let chipRate = 10; // MHz
+let sequenceLength = 7;
+let carrierFrequency = 1; // MHz
+let carrierAmplitude = 5; // V
 
-    // Initialize the system
-    function init() {
-        // Event listeners
-        powerBtn.addEventListener('click', togglePower);
-        resetConnectionsBtn.addEventListener('click', resetConnections);
-        showOscilloscopeBtn.addEventListener('click', showOscilloscope);
-        oscilloscopeClose.addEventListener('click', hideOscilloscope);
-        
-        // Port click handlers
-        document.querySelectorAll('.port').forEach(port => {
-            port.addEventListener('click', handlePortClick);
-        });
-        
-        // Binary input toggles
-        document.querySelectorAll('#binaryInput input[type="checkbox"]').forEach(checkbox => {
-            checkbox.addEventListener('change', updateBinaryInput);
-        });
-        
-        // Waveform selection changes
-        waveformInput.addEventListener('change', drawOscilloscope);
-        waveformPN.addEventListener('change', drawOscilloscope);
-        waveformSpread.addEventListener('change', drawOscilloscope);
-        waveformCarrier.addEventListener('change', drawOscilloscope);
-        waveformOutput.addEventListener('change', drawOscilloscope);
-        
-        // Initialize display
-        updateParameterDisplays();
-        resizeCanvas();
+// Binary input state (8 bits)
+const binaryBits = new Array(8).fill(false);
+
+// DOM elements
+const powerBtn = document.getElementById('powerBtn');
+const resetConnectionsBtn = document.getElementById('resetConnectionsBtn');
+const showOscilloscopeBtn = document.getElementById('showOscilloscopeBtn');
+const statusMessage = document.getElementById('statusMessage');
+const oscilloscopeModal = document.getElementById('oscilloscopeModal');
+const oscilloscopeClose = document.getElementById('oscilloscopeClose');
+const oscilloscopeDisplay = document.getElementById('oscilloscopeDisplay');
+const oscilloscopeCtx = oscilloscopeDisplay.getContext('2d');
+
+// Parameter display elements
+const chipRateVal = document.getElementById('chipRateVal');
+const seqLengthVal = document.getElementById('seqLengthVal');
+const carrierFreqVal = document.getElementById('carrierFreqVal');
+const carrierAmpVal = document.getElementById('carrierAmpVal');
+
+// Waveform selection elements
+const waveformInput = document.getElementById('inputWave');
+const waveformPN = document.getElementById('pnWave');
+const waveformSpread = document.getElementById('spreadWave');
+const waveformCarrier = document.getElementById('carrierWave');
+const waveformOutput = document.getElementById('outputWave');
+
+// Initialize the system
+function init() {
+    // Event listeners
+    powerBtn.addEventListener('click', togglePower);
+    resetConnectionsBtn.addEventListener('click', resetConnections);
+    showOscilloscopeBtn.addEventListener('click', showOscilloscope);
+    oscilloscopeClose.addEventListener('click', hideOscilloscope);
+    
+    // Port click handlers
+    document.querySelectorAll('.port').forEach(port => {
+        port.addEventListener('click', handlePortClick);
+    });
+    
+    // Binary input toggles
+    document.querySelectorAll('#binaryInput input[type="checkbox"]').forEach(checkbox => {
+        checkbox.addEventListener('change', updateBinaryInput);
+    });
+    
+    // Waveform selection changes
+    waveformInput.addEventListener('change', drawOscilloscope);
+    waveformPN.addEventListener('change', drawOscilloscope);
+    waveformSpread.addEventListener('change', drawOscilloscope);
+    waveformCarrier.addEventListener('change', drawOscilloscope);
+    waveformOutput.addEventListener('change', drawOscilloscope);
+    
+    // Initialize display
+    updateParameterDisplays();
+    resizeCanvas();
+}
+
+// Toggle power state
+function togglePower() {
+    powerOn = !powerOn;
+    powerBtn.textContent = powerOn ? 'Power OFF' : 'Power ON';
+    powerBtn.classList.toggle('on', powerOn);
+    powerBtn.classList.toggle('off', !powerOn);
+    
+    if (powerOn) {
+        console.log("System powered ON");
+    } else {
+        console.log("System powered OFF");
     }
+    drawOscilloscope();
+}
 
-    // Toggle power state
-    function togglePower() {
-        powerOn = !powerOn;
-        powerBtn.textContent = powerOn ? 'Power OFF' : 'Power ON';
-        powerBtn.classList.toggle('on', powerOn);
-        powerBtn.classList.toggle('off', !powerOn);
+// Reset all connections
+function resetConnections() {
+    connections = [];
+    document.querySelectorAll('.connection').forEach(el => el.remove());
+    document.querySelectorAll('.connection-label').forEach(el => el.remove());
+    inputsLocked = false;
+    enableInputs(true);
+    console.log("All connections reset");
+    drawOscilloscope();
+}
+
+// Handle port clicks for creating connections
+function handlePortClick(e) {
+    const port = e.currentTarget;
+    
+    if (!powerOn) {
+        showStatusMessage("System is powered off");
+        return;
+    }
+    
+    if (!selectedPort) {
+        // First port selected
+        selectedPort = port;
+        port.classList.add('selected');
         
-        if (powerOn) {
-            console.log("System powered ON");
-        } else {
-            console.log("System powered OFF");
+        if (port.dataset.type === 'output') {
+            document.addEventListener('mousemove', moveTempConnection);
+            document.addEventListener('mouseup', releaseTempConnection);
         }
-        drawOscilloscope();
-    }
-
-    // Reset all connections
-    function resetConnections() {
-        connections = [];
-        document.querySelectorAll('.connection').forEach(el => el.remove());
-        document.querySelectorAll('.connection-label').forEach(el => el.remove());
-        inputsLocked = false;
-        enableInputs(true);
-        console.log("All connections reset");
-    }
-
-    // Handle port clicks for creating connections
-    function handlePortClick(e) {
-        const port = e.currentTarget;
-        
-        if (!powerOn) {
-            showStatusMessage("System is powered off");
-            return;
-        }
-        
-        if (!selectedPort) {
-            // First port selected
-            selectedPort = port;
-            port.classList.add('selected');
-            
-            if (port.dataset.type === 'output') {
-                document.addEventListener('mousemove', moveTempConnection);
-                document.addEventListener('mouseup', releaseTempConnection);
+    } else {
+        // Second port selected - attempt to create connection
+        if (selectedPort === port) {
+            // Clicked same port - deselect
+            selectedPort.classList.remove('selected');
+            selectedPort = null;
+            if (tempConnection) {
+                tempConnection.remove();
+                tempConnection = null;
+            }
+        } else if (selectedPort.dataset.type === port.dataset.type) {
+            // Both inputs or both outputs - invalid
+            showStatusMessage("Cannot connect two inputs or two outputs");
+            selectedPort.classList.remove('selected');
+            selectedPort = null;
+            if (tempConnection) {
+                tempConnection.remove();
+                tempConnection = null;
             }
         } else {
-            // Second port selected - attempt to create connection
-            if (selectedPort === port) {
-                // Clicked same port - deselect
-                selectedPort.classList.remove('selected');
-                selectedPort = null;
-                if (tempConnection) {
-                    tempConnection.remove();
-                    tempConnection = null;
-                }
-            } else if (selectedPort.dataset.type === port.dataset.type) {
-                // Both inputs or both outputs - invalid
-                showStatusMessage("Cannot connect two inputs or two outputs");
-                selectedPort.classList.remove('selected');
-                selectedPort = null;
-                if (tempConnection) {
-                    tempConnection.remove();
-                    tempConnection = null;
-                }
-            } else {
-                // Valid connection attempt
-                if (!inputsLocked) {
-                    // Before locking inputs, ensure binary input is given (at least one bit set)
-                    if (!validateUserInputs()) {
-                        showStatusMessage("Please provide binary input before making connections");
-                        selectedPort.classList.remove('selected');
-                        selectedPort = null;
-                        if (tempConnection) {
-                            tempConnection.remove();
-                            tempConnection = null;
-                        }
-                        return;
+            // Valid connection attempt
+            if (!inputsLocked) {
+                // Before locking inputs, ensure binary input is given (at least one bit set)
+                if (!validateUserInputs()) {
+                    showStatusMessage("Please provide binary input before making connections");
+                    selectedPort.classList.remove('selected');
+                    selectedPort = null;
+                    if (tempConnection) {
+                        tempConnection.remove();
+                        tempConnection = null;
                     }
-                    // Lock inputs on first successful connection attempt
-                    inputsLocked = true;
-                    enableInputs(false);
+                    return;
                 }
-                
-                createConnection(selectedPort, port);
-                selectedPort.classList.remove('selected');
-                selectedPort = null;
             }
+            
+            tryCreateConnection(selectedPort, port);
         }
     }
+}
 
-    // Validate binary input before allowing connections
-    function validateUserInputs() {
-        // Validate binary input at least one checked
-        const binaryCheckboxes = document.querySelectorAll('#binaryInput input[type="checkbox"]');
-        for (let cb of binaryCheckboxes) {
-            if (cb.checked) {
-                return true;
-            }
+// Validate binary input before allowing connections
+function validateUserInputs() {
+    // Validate binary input at least one checked
+    const binaryCheckboxes = document.querySelectorAll('#binaryInput input[type="checkbox"]');
+    for (let cb of binaryCheckboxes) {
+        if (cb.checked) {
+            return true;
         }
+    }
+    return false;
+}
+
+// Disable or enable all inputs and controls based on locked state
+function enableInputs(enable) {
+    const allCheckboxes = document.querySelectorAll('#binaryInput input[type="checkbox"]');
+    allCheckboxes.forEach(cb => cb.disabled = !enable);
+}
+
+function moveTempConnection(e) {
+    if (!selectedPort || selectedPort.dataset.type !== 'output') return;
+    const kit = document.getElementById('kit');
+    const kitRect = kit.getBoundingClientRect();
+    const portRect = selectedPort.getBoundingClientRect();
+
+    const startX = portRect.left + portRect.width / 2 - kitRect.left;
+    const startY = portRect.top + portRect.height / 2 - kitRect.top;
+    const endX = e.clientX - kitRect.left;
+    const endY = e.clientY - kitRect.top;
+
+    if (!tempConnection) {
+        tempConnection = document.createElement('div');
+        tempConnection.className = 'temp-connection';
+        kit.appendChild(tempConnection);
+    }
+
+    const length = Math.sqrt(Math.pow(endX - startX, 2) + Math.pow(endY - startY, 2));
+    const angle = Math.atan2(endY - startY, endX - startX) * 180 / Math.PI;
+
+    tempConnection.style.left = startX + 'px';
+    tempConnection.style.top = startY + 'px';
+    tempConnection.style.width = length + 'px';
+    tempConnection.style.transform = 'rotate(' + angle + 'deg)';
+}
+
+function releaseTempConnection(e) {
+    document.removeEventListener('mousemove', moveTempConnection);
+    document.removeEventListener('mouseup', releaseTempConnection);
+
+    if (tempConnection) {
+        document.getElementById('kit').removeChild(tempConnection);
+        tempConnection = null;
+    }
+
+    if (!selectedPort) return;
+
+    const hoveredElement = document.elementFromPoint(e.clientX, e.clientY);
+    const targetPort = hoveredElement?.closest('.port');
+
+    if (targetPort && targetPort !== selectedPort) {
+        tryCreateConnection(selectedPort, targetPort);
+    } else {
+        showStatusMessage("Incomplete connection");
+    }
+
+    selectedPort.classList.remove('selected');
+    selectedPort = null;
+}
+
+function tryCreateConnection(sourcePort, targetPort) {
+    const sourceType = sourcePort.dataset.type;
+    const targetType = targetPort.dataset.type;
+
+    if (sourceType !== 'output' || targetType !== 'input') {
+        showStatusMessage("Can only connect output to input");
         return false;
     }
 
-    // Disable or enable all inputs and controls based on locked state
-    function enableInputs(enable) {
-        const allCheckboxes = document.querySelectorAll('#binaryInput input[type="checkbox"]');
-        allCheckboxes.forEach(cb => cb.disabled = !enable);
+    const targetModule = targetPort.dataset.module;
+    const targetIndex = targetPort.dataset.index;
+
+    if (connections.some(conn =>
+        conn.targetModule === targetModule && conn.targetIndex === targetIndex
+    )) {
+        showStatusMessage("Input port already connected");
+        return false;
     }
 
-    function moveTempConnection(e) {
-        if (!selectedPort || selectedPort.dataset.type !== 'output') return;
-        const kit = document.getElementById('kit');
-        const kitRect = kit.getBoundingClientRect();
-        const portRect = selectedPort.getBoundingClientRect();
+    const sourceModule = sourcePort.dataset.module;
+    const sourceIndex = sourcePort.dataset.index;
 
-        const startX = portRect.left + portRect.width / 2 - kitRect.left;
-        const startY = portRect.top + portRect.height / 2 - kitRect.top;
-        const endX = e.clientX - kitRect.left;
-        const endY = e.clientY - kitRect.top;
+    let isValid = false;
+    let errorMessage = "Invalid connection for DSSS circuit";
 
-        if (!tempConnection) {
-            tempConnection = document.createElement('div');
-            tempConnection.className = 'temp-connection';
-            kit.appendChild(tempConnection);
-        }
-
-        const length = Math.sqrt(Math.pow(endX - startX, 2) + Math.pow(endY - startY, 2));
-        const angle = Math.atan2(endY - startY, endX - startX) * 180 / Math.PI;
-
-        tempConnection.style.left = startX + 'px';
-        tempConnection.style.top = startY + 'px';
-        tempConnection.style.width = length + 'px';
-        tempConnection.style.transform = 'rotate(' + angle + 'deg)';
+    // Define valid connection rules for DSSS system
+    if (sourceModule === 'dataGenerator' && sourceIndex === '0') {
+        isValid = (targetModule === 'xorGate' && targetIndex === '0');
+        errorMessage = "Data Generator must connect to XOR Gate's b(t) input";
+    }
+    else if (sourceModule === 'pnGenerator' && sourceIndex === '0') {
+        isValid = (targetModule === 'xorGate' && targetIndex === '1');
+        errorMessage = "PN Generator must connect to XOR Gate's c(t) input";
+    }
+    else if (sourceModule === 'xorGate' && sourceIndex === '0') {
+        isValid = (targetModule === 'bpskModulator' && targetIndex === '0');
+        errorMessage = "XOR Gate must connect to BPSK Modulator's s(t) input";
+    }
+    else if (sourceModule === 'carrierGenerator' && sourceIndex === '0') {
+        isValid = (targetModule === 'bpskModulator' && targetIndex === '1');
+        errorMessage = "Carrier Generator must connect to BPSK Modulator's carrier input";
+    }
+    else if (sourceModule === 'bpskModulator' && sourceIndex === '0') {
+        isValid = false; // Output is final DSSS signal
+        errorMessage = "BPSK Modulator output is the final DSSS signal";
     }
 
-    function releaseTempConnection(e) {
-        document.removeEventListener('mousemove', moveTempConnection);
-        document.removeEventListener('mouseup', releaseTempConnection);
-
-        if (tempConnection) {
-            document.getElementById('kit').removeChild(tempConnection);
-            tempConnection = null;
-        }
-
-        if (!selectedPort) return;
-
-        const hoveredElement = document.elementFromPoint(e.clientX, e.clientY);
-        const targetPort = hoveredElement?.closest('.port');
-
-        if (targetPort && targetPort !== selectedPort) {
-            tryCreateConnection(selectedPort, targetPort);
-        } else {
-            showStatusMessage("Incomplete connection");
-        }
-
-        selectedPort.classList.remove('selected');
-        selectedPort = null;
+    if (!isValid) {
+        showStatusMessage(errorMessage);
+        return false;
     }
 
-    function tryCreateConnection(sourcePort, targetPort) {
-        const sourceType = sourcePort.dataset.type;
-        const targetType = targetPort.dataset.type;
+    createConnection(sourcePort, targetPort);
+    showStatusMessage("Connection successful!", false);
+    
+    // After successful connection, check if all required connections are made
+    checkAllConnections();
+    
+    return true;
+}
 
-        if (sourceType !== 'output' || targetType !== 'input') {
-            showStatusMessage("Can only connect output to input");
-            return false;
+function checkAllConnections() {
+    // Check if all required connections for DSSS are made
+    const requiredConnections = [
+        { source: 'dataGenerator', target: 'xorGate', targetIndex: '0' },
+        { source: 'pnGenerator', target: 'xorGate', targetIndex: '1' },
+        { source: 'xorGate', target: 'bpskModulator', targetIndex: '0' },
+        { source: 'carrierGenerator', target: 'bpskModulator', targetIndex: '1' }
+    ];
+    
+    let allConnected = true;
+    for (const reqConn of requiredConnections) {
+        const found = connections.some(conn => 
+            conn.sourceModule === reqConn.source && 
+            conn.targetModule === reqConn.target && 
+            conn.targetIndex === reqConn.targetIndex
+        );
+        if (!found) {
+            allConnected = false;
+            break;
         }
-
-        const targetModule = targetPort.dataset.module;
-        const targetIndex = targetPort.dataset.index;
-
-        if (connections.some(conn =>
-            conn.targetModule === targetModule && conn.targetIndex === targetIndex
-        )) {
-            showStatusMessage("Input port already connected");
-            return false;
-        }
-
-        const sourceModule = sourcePort.dataset.module;
-        const sourceIndex = sourcePort.dataset.index;
-
-        let isValid = false;
-        let errorMessage = "Invalid connection for DSSS circuit";
-
-        // Define valid connection rules for DSSS system
-        if (sourceModule === 'dataGenerator' && sourceIndex === '0') {
-            isValid = (targetModule === 'xorGate' && targetIndex === '0');
-            errorMessage = "Data Generator must connect to XOR Gate's b(t) input";
-        }
-        else if (sourceModule === 'pnGenerator' && sourceIndex === '0') {
-            isValid = (targetModule === 'xorGate' && targetIndex === '1');
-            errorMessage = "PN Generator must connect to XOR Gate's c(t) input";
-        }
-        else if (sourceModule === 'xorGate' && sourceIndex === '0') {
-            isValid = (targetModule === 'bpskModulator' && targetIndex === '0');
-            errorMessage = "XOR Gate must connect to BPSK Modulator's s(t) input";
-        }
-        else if (sourceModule === 'carrierGenerator' && sourceIndex === '0') {
-            isValid = (targetModule === 'bpskModulator' && targetIndex === '1');
-            errorMessage = "Carrier Generator must connect to BPSK Modulator's carrier input";
-        }
-        else if (sourceModule === 'bpskModulator' && sourceIndex === '0') {
-            isValid = false; // Output is final DSSS signal
-            errorMessage = "BPSK Modulator output is the final DSSS signal";
-        }
-
-        if (!isValid) {
-            showStatusMessage(errorMessage);
-            return false;
-        }
-
-        createConnection(sourcePort, targetPort);
-        showStatusMessage("Connection successful!", false);
-        return true;
     }
+    
+    if (allConnected && !inputsLocked) {
+        inputsLocked = true;
+        enableInputs(false);
+        showStatusMessage("All connections made! System is ready.", false);
+    }
+    
+    drawOscilloscope();
+}
 
-    function createConnection(sourcePort, targetPort) {
-        const kit = document.getElementById('kit');
-        const kitRect = kit.getBoundingClientRect();
-        const sourceRect = sourcePort.getBoundingClientRect();
-        const targetRect = targetPort.getBoundingClientRect();
+function createConnection(sourcePort, targetPort) {
+    const kit = document.getElementById('kit');
+    const kitRect = kit.getBoundingClientRect();
+    const sourceRect = sourcePort.getBoundingClientRect();
+    const targetRect = targetPort.getBoundingClientRect();
 
-        const sourceX = sourceRect.left + sourceRect.width / 2 - kitRect.left;
-        const sourceY = sourceRect.top + sourceRect.height / 2 - kitRect.top;
-        const targetX = targetRect.left + targetRect.width / 2 - kitRect.left;
-        const targetY = targetRect.top + targetRect.height / 2 - kitRect.top;
+    const sourceX = sourceRect.left + sourceRect.width / 2 - kitRect.left;
+    const sourceY = sourceRect.top + sourceRect.height / 2 - kitRect.top;
+    const targetX = targetRect.left + targetRect.width / 2 - kitRect.left;
+    const targetY = targetRect.top + targetRect.height / 2 - kitRect.top;
 
-        const connection = document.createElement('div');
-        connection.className = 'connection';
-        connection.style.left = sourceX + 'px';
-        connection.style.top = sourceY + 'px';
+    const connection = document.createElement('div');
+    connection.className = 'connection';
+    connection.style.left = sourceX + 'px';
+    connection.style.top = sourceY + 'px';
 
-        const length = Math.sqrt(Math.pow(targetX - sourceX, 2) + Math.pow(targetY - sourceY, 2));
-        const angle = Math.atan2(targetY - sourceY, targetX - sourceX) * 180 / Math.PI;
+    const length = Math.sqrt(Math.pow(targetX - sourceX, 2) + Math.pow(targetY - sourceY, 2));
+    const angle = Math.atan2(targetY - sourceY, targetX - sourceX) * 180 / Math.PI;
 
-        connection.style.width = length + 'px';
-        connection.style.transform = 'rotate(' + angle + 'deg)';
+    connection.style.width = length + 'px';
+    connection.style.transform = 'rotate(' + angle + 'deg)';
 
-        kit.appendChild(connection);
+    kit.appendChild(connection);
 
-        // Add click handler to remove connection with Ctrl+Click
-        connection.addEventListener('click', (e) => {
-            if (e.ctrlKey || e.metaKey) {
-                kit.removeChild(connection);
-                connections = connections.filter(conn => conn.element !== connection);
-                if (connections.length === 0) {
-                    inputsLocked = false;
-                    enableInputs(true);
-                }
+    // Add click handler to remove connection with Ctrl+Click
+    connection.addEventListener('click', (e) => {
+        if (e.ctrlKey || e.metaKey) {
+            kit.removeChild(connection);
+            connections = connections.filter(conn => conn.element !== connection);
+            if (connections.length === 0) {
+                inputsLocked = false;
+                enableInputs(true);
             }
-        });
-
-        connections.push({
-            sourceModule: sourcePort.dataset.module,
-            sourceIndex: sourcePort.dataset.index,
-            targetModule: targetPort.dataset.module,
-            targetIndex: targetPort.dataset.index,
-            element: connection
-        });
-    }
-
-    // Show status message
-    function showStatusMessage(message, isError = true) {
-        statusMessage.textContent = message;
-        statusMessage.style.backgroundColor = isError ? '#f44336' : '#4CAF50';
-        statusMessage.style.display = 'block';
-        setTimeout(() => {
-            statusMessage.style.display = 'none';
-        }, 2000);
-    }
-
-    // Update parameter displays
-    function updateParameterDisplays() {
-        chipRateVal.textContent = chipRate;
-        seqLengthVal.textContent = sequenceLength;
-        carrierFreqVal.textContent = carrierFrequency;
-        carrierAmpVal.textContent = carrierAmplitude;
-    }
-
-    // Parameter adjustment functions
-    function changeChipRate(delta) {
-        if (inputsLocked) {
-            showStatusMessage("Reset connections to modify parameters");
-            return;
+            drawOscilloscope();
         }
-        chipRate = Math.max(1, chipRate + delta);
-        updateParameterDisplays();
-    }
+    });
 
-    function changeSeqLength(delta) {
-        if (inputsLocked) {
-            showStatusMessage("Reset connections to modify parameters");
-            return;
-        }
-        sequenceLength = Math.max(3, Math.min(sequenceLength + delta, 15));
-        updateParameterDisplays();
-    }
+    connections.push({
+        sourceModule: sourcePort.dataset.module,
+        sourceIndex: sourcePort.dataset.index,
+        targetModule: targetPort.dataset.module,
+        targetIndex: targetPort.dataset.index,
+        element: connection
+    });
+}
 
-    function changeCarrierFreq(delta) {
-        if (inputsLocked) {
-            showStatusMessage("Reset connections to modify parameters");
-            return;
-        }
-        carrierFrequency = Math.max(0.1, carrierFrequency + delta);
-        updateParameterDisplays();
-    }
+// Show status message
+function showStatusMessage(message, isError = true) {
+    statusMessage.textContent = message;
+    statusMessage.style.backgroundColor = isError ? '#f44336' : '#4CAF50';
+    statusMessage.style.display = 'block';
+    setTimeout(() => {
+        statusMessage.style.display = 'none';
+    }, 2000);
+}
 
-    function changeCarrierAmp(delta) {
-        if (inputsLocked) {
-            showStatusMessage("Reset connections to modify parameters");
-            return;
-        }
-        carrierAmplitude = Math.max(0.1, carrierAmplitude + delta);
-        updateParameterDisplays();
-    }
+// Update parameter displays
+function updateParameterDisplays() {
+    chipRateVal.textContent = chipRate;
+    seqLengthVal.textContent = sequenceLength;
+    carrierFreqVal.textContent = carrierFrequency;
+    carrierAmpVal.textContent = carrierAmplitude;
+    drawOscilloscope();
+}
 
-    // Update binary input state
-    function updateBinaryInput(e) {
-        if (inputsLocked) {
-            e.preventDefault();
-            showStatusMessage("Reset connections to change binary input");
-            return;
-        }
-        const bitIndex = parseInt(e.target.dataset.bit);
-        binaryBits[bitIndex] = e.target.checked;
+// Parameter adjustment functions
+function changeChipRate(delta) {
+    if (inputsLocked) {
+        showStatusMessage("Reset connections to modify parameters");
+        return;
     }
+    chipRate = Math.max(1, chipRate + delta);
+    updateParameterDisplays();
+}
 
-    // Oscilloscope functions
-    function showOscilloscope() {
-        if (!powerOn) {
-            showStatusMessage("Please turn power ON first");
-            return;
-        }
-        oscilloscopeModal.style.display = 'flex';
+function changeSeqLength(delta) {
+    if (inputsLocked) {
+        showStatusMessage("Reset connections to modify parameters");
+        return;
+    }
+    sequenceLength = Math.max(3, Math.min(sequenceLength + delta, 15));
+    updateParameterDisplays();
+}
+
+function changeCarrierFreq(delta) {
+    if (inputsLocked) {
+        showStatusMessage("Reset connections to modify parameters");
+        return;
+    }
+    carrierFrequency = Math.max(0.1, carrierFrequency + delta);
+    updateParameterDisplays();
+}
+
+function changeCarrierAmp(delta) {
+    if (inputsLocked) {
+        showStatusMessage("Reset connections to modify parameters");
+        return;
+    }
+    carrierAmplitude = Math.max(0.1, carrierAmplitude + delta);
+    updateParameterDisplays();
+}
+
+// Update binary input state
+function updateBinaryInput(e) {
+    if (inputsLocked) {
+        e.preventDefault();
+        showStatusMessage("Reset connections to change binary input");
+        return;
+    }
+    const bitIndex = parseInt(e.target.dataset.bit);
+    binaryBits[bitIndex] = e.target.checked;
+    drawOscilloscope();
+}
+
+// Oscilloscope functions
+function showOscilloscope() {
+    if (!powerOn) {
+        showStatusMessage("Please turn power ON first");
+        return;
+    }
+    oscilloscopeModal.style.display = 'flex';
+    drawOscilloscope();
+}
+
+function hideOscilloscope() {
+    oscilloscopeModal.style.display = 'none';
+}
+
+function resizeCanvas() {
+    oscilloscopeDisplay.width = document.getElementById('oscilloscopeContent').offsetWidth - 40;
+    oscilloscopeDisplay.height = 300;
+    if (oscilloscopeModal.style.display === 'flex') {
         drawOscilloscope();
     }
+}
 
-    function hideOscilloscope() {
-        oscilloscopeModal.style.display = 'none';
-    }
-
-    function resizeCanvas() {
-        oscilloscopeDisplay.width = document.getElementById('oscilloscopeContent').offsetWidth - 40;
-        oscilloscopeDisplay.height = 300;
-    }
-
-  function drawOscilloscope() {
+function drawOscilloscope() {
     const canvasW = oscilloscopeDisplay.width;
     const canvasH = oscilloscopeDisplay.height;
     
@@ -459,7 +495,7 @@
     if (selectedWaveform === 'pn') waveColor = 'cyan';
     if (selectedWaveform === 'spread') waveColor = 'yellow';
     if (selectedWaveform === 'carrier') waveColor = 'orange';
-    if (selectedWaveform === 'output') waveColor = 'purple';
+    if (selectedWaveform === 'output') waveColor = 'magenta';
     
     oscilloscopeCtx.strokeStyle = waveColor;
     oscilloscopeCtx.lineWidth = 2;
@@ -487,7 +523,7 @@
         // Draw PN sequence (simplified - square wave)
         const highY = canvasH / 4;
         const lowY = (canvasH / 4) * 3;
-        const chipsPerBit = sequenceLength; // Use the current sequence length
+        const chipsPerBit = sequenceLength;
         
         let x = 0;
         oscilloscopeCtx.moveTo(x, highY);
@@ -507,6 +543,26 @@
         }
     }
     else if (selectedWaveform === 'spread') {
+        // Check if XOR gate is connected (data and PN connected)
+        const xorConnected = connections.some(conn => 
+            conn.sourceModule === 'dataGenerator' && 
+            conn.targetModule === 'xorGate' && 
+            conn.targetIndex === '0'
+        ) && connections.some(conn => 
+            conn.sourceModule === 'pnGenerator' && 
+            conn.targetModule === 'xorGate' && 
+            conn.targetIndex === '1'
+        );
+        
+        if (!xorConnected) {
+            oscilloscopeCtx.strokeStyle = '#f00';
+            oscilloscopeCtx.font = '16px Arial';
+            oscilloscopeCtx.fillStyle = '#f00';
+            oscilloscopeCtx.fillText("Connect Data and PN to XOR Gate first", canvasW/4, canvasH/2);
+            oscilloscopeCtx.stroke();
+            return;
+        }
+        
         // Draw spread data signal (binary data XOR with PN sequence)
         const highY = canvasH / 4;
         const lowY = (canvasH / 4) * 3;
@@ -549,6 +605,34 @@
         }
     }
     else if (selectedWaveform === 'output') {
+        // Check if all required connections are made
+        const allConnected = connections.some(conn => 
+            conn.sourceModule === 'dataGenerator' && 
+            conn.targetModule === 'xorGate' && 
+            conn.targetIndex === '0'
+        ) && connections.some(conn => 
+            conn.sourceModule === 'pnGenerator' && 
+            conn.targetModule === 'xorGate' && 
+            conn.targetIndex === '1'
+        ) && connections.some(conn => 
+            conn.sourceModule === 'xorGate' && 
+            conn.targetModule === 'bpskModulator' && 
+            conn.targetIndex === '0'
+        ) && connections.some(conn => 
+            conn.sourceModule === 'carrierGenerator' && 
+            conn.targetModule === 'bpskModulator' && 
+            conn.targetIndex === '1'
+        );
+        
+        if (!allConnected) {
+            oscilloscopeCtx.strokeStyle = '#f00';
+            oscilloscopeCtx.font = '16px Arial';
+            oscilloscopeCtx.fillStyle = '#f00';
+            oscilloscopeCtx.fillText("Complete all connections to see DSSS output", canvasW/6, canvasH/2);
+            oscilloscopeCtx.stroke();
+            return;
+        }
+        
         // Draw DSSS output signal (BPSK modulated)
         const centerY = canvasH / 2;
         const amplitude = (carrierAmplitude / 10) * (canvasH / 4);
@@ -616,9 +700,7 @@ function generatePNSequence(length) {
 window.addEventListener('load', init);
 window.addEventListener('resize', () => {
     resizeCanvas();
-    if (oscilloscopeModal.style.display === 'block') {
+    if (oscilloscopeModal.style.display === 'flex') {
         drawOscilloscope();
     }
 });
-    
-    
