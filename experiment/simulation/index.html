@@ -7,162 +7,72 @@
      <link rel="stylesheet" href="./css/main.css">
 </head>
 <body>
-    <h1>Direct Sequence Spread Spectrum (DSSS) System</h1>
-
-    <div class="controls-container">
-        <button id="powerBtn">Power ON</button>
-        <button id="resetConnectionsBtn">Reset Connections</button>
-    </div>
-
-    <div id="statusMessage">Invalid connection!</div>
-
-    <!-- Oscilloscope Modal -->
-    <div id="oscilloscopeModal">
-        <div id="oscilloscopeContent">
-            <span id="oscilloscopeClose">&times;</span>
-            <h2 style="color: white; text-align: center;">Oscilloscope Display</h2>
-            
-            <div class="waveform-selector">
-                <div class="waveform-option">
-                    <input type="radio" id="inputWave" name="waveform" value="input" checked>
-                    <label for="inputWave">Input Binary Signal (NRZ)</label>
+    <h1>Direct Sequence Spread Spectrum (DSSS) Simulation</h1>
+    
+    <div id="controls">
+        <div class="control-group">
+            <button id="powerButton">POWER OFF</button>
+            <span id="status" class="status">System is OFF</span>
+        </div>
+        
+        <div id="inputControls" style="display: none;">
+            <div class="control-group">
+                <h3>Input Parameters</h3>
+                <div>
+                    <label for="bitSequence">Binary Sequence:</label>
+                    <input type="text" id="bitSequence" value="1010" placeholder="e.g., 1010">
+                    <button id="updateBits">Update</button>
                 </div>
-                <div class="waveform-option">
-                    <input type="radio" id="pnWave" name="waveform" value="pn">
-                    <label for="pnWave">PN Code Sequence</label>
+                <div>
+                    <label for="carrierFreq">Carrier Freq (Hz):</label>
+                    <input type="number" id="carrierFreq" value="1" step="0.1" min="0.1" max="10">
                 </div>
-                <div class="waveform-option">
-                    <input type="radio" id="spreadWave" name="waveform" value="spread">
-                    <label for="spreadWave">Spread Data Signal</label>
+                <div>
+                    <label for="chipsPerBit">Chips per Bit:</label>
+                    <input type="number" id="chipsPerBit" value="8" min="1" max="16">
                 </div>
-                <div class="waveform-option">
-                    <input type="radio" id="carrierWave" name="waveform" value="carrier">
-                    <label for="carrierWave">Carrier Signal</label>
-                </div>
-                <div class="waveform-option">
-                    <input type="radio" id="outputWave" name="waveform" value="output">
-                    <label for="outputWave">DSSS Output Signal</label>
-                </div>
+                <div id="warning" class="warning" style="display: none;"></div>
+                <div id="success" class="success" style="display: none;"></div>
             </div>
             
-            <canvas id="oscilloscopeDisplay"></canvas>
-        </div>
-    </div>
-
-    <div id="kit">
-        <!-- Data Generator (Binary + NRZ) -->
-        <div class="module" id="dataGenerator">
-           
-            <h2>Data Generator (NRZ)</h2>
-            <div id="binaryInput" title="Toggle bits 0 or 1">
-                <label><input type="checkbox" data-bit="7">7</label>
-                <label><input type="checkbox" data-bit="6">6</label>
-                <label><input type="checkbox" data-bit="5">5</label>
-                <label><input type="checkbox" data-bit="4">4</label>
-                <label><input type="checkbox" data-bit="3">3</label>
-                <label><input type="checkbox" data-bit="2">2</label>
-                <label><input type="checkbox" data-bit="1">1</label>
-                <label><input type="checkbox" data-bit="0">0</label>
-            </div>
-            <div class="ports-row" style="margin-top: 15px;">
-                <div class="port-block">
-                    <div class="port output-port" data-type="output" data-module="dataGenerator" data-index="0"></div>
-                    <div class="port-label">b(t) Output</div>
-                </div>
-            </div>
-        </div>
-
-        <!-- PN Code Generator -->
-        <div class="module" id="pnGenerator">
-           
-            <h2>PN Code Generator</h2>
-            <div class="control-group">
-                <div class="control-label">Chip Rate: <span id="chipRateVal">10</span> MHz</div>
-                <button onclick="changeChipRate(-1)">-</button>
-                <button onclick="changeChipRate(1)">+</button>
-            </div>
-            <div class="control-group">
-                <div class="control-label">Sequence Length: <span id="seqLengthVal">7</span></div>
-                <button onclick="changeSeqLength(-1)">-</button>
-                <button onclick="changeSeqLength(1)">+</button>
-            </div>
-            <div class="ports-row" style="margin-top: 15px;">
-                <div class="port-block">
-                    <div class="port output-port" data-type="output" data-module="pnGenerator" data-index="0"></div>
-                    <div class="port-label">c(t) Output</div>
-                </div>
-            </div>
-        </div>
-
-        <!-- XOR Gate -->
-        <div class="module" id="xorGate">
-            <h2>XOR Gate (⊕)</h2>
-            <div class="ports-row">
-                <div class="port-block">
-                    <div class="port input-port" data-type="input" data-module="xorGate" data-index="0"></div>
-                    <div class="port-label">b(t) Input</div>
-                </div>
-                <div class="port-block">
-                    <div class="port input-port" data-type="input" data-module="xorGate" data-index="1"></div>
-                    <div class="port-label">c(t) Input</div>
-                </div>
-                <div class="port-block">
-                    <div class="port output-port" data-type="output" data-module="xorGate" data-index="0"></div>
-                    <div class="port-label">s(t) Output</div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Function Generator (Carrier) -->
-        <div class="module" id="carrierGenerator">
-            <div class="box">
-                <img src="./images/image.png" class="box-image" alt="Function Generator">
-            </div>
-            <h2>Carrier Generator</h2>
-            <div class="ports-row">
-                <div class="port-block"></div>
-                <div class="port-block"></div>
-                <div class="port-block">
-                    <div class="port output-port" data-type="output" data-module="carrierGenerator" data-index="0"></div>
-                    <div class="port-label">Output</div>
-                </div>
-            </div>
-            <div class="control-group">
-                <div class="control-label">Frequency: <span id="carrierFreqVal">1</span> MHz</div>
-                <button onclick="changeCarrierFreq(-0.1)">-</button>
-                <button onclick="changeCarrierFreq(0.1)">+</button>
-            </div>
-            <div class="control-group">
-                <div class="control-label">Amplitude: <span id="carrierAmpVal">5</span> V</div>
-                <button onclick="changeCarrierAmp(-0.5)">-</button>
-                <button onclick="changeCarrierAmp(0.5)">+</button>
-            </div>
-        </div>
-
-        <!-- BPSK Modulator -->
-        <div class="module" id="bpskModulator">
-            <h2>BPSK Modulator</h2>
-            <div class="ports-row">
-                <div class="port-block">
-                    <div class="port input-port" data-type="input" data-module="bpskModulator" data-index="0"></div>
-                    <div class="port-label">s(t) Input</div>
-                </div>
-                <div class="port-block">
-                    <div class="port input-port" data-type="input" data-module="bpskModulator" data-index="1"></div>
-                    <div class="port-label">Carrier</div>
-                </div>
-                <div class="port-block">
-                    <div class="port output-port" data-type="output" data-module="bpskModulator" data-index="0"></div>
-                    <div class="port-label">x(t) Output</div>
+            <div id="connectionControls" style="display: none;">
+                <div class="control-group">
+                    <h3>Circuit Connections</h3>
+                    <p>Click on output connector (green) first, then input connector (red) to make connections.</p>
+                    <button id="showWaveforms">Show Waveforms</button>
+                    <button id="clearConnections">Clear All Connections</button>
+                    <button id="helpConnections">Show Connection Guide</button>
                 </div>
             </div>
         </div>
     </div>
-
-    <div class="controls-container">
-        <button id="showOscilloscopeBtn">Show on Oscilloscope</button>
+    
+    <div id="connection-guide" style="display: none;">
+        <h3>Connection Guide</h3>
+        <ol>
+            <li>Connect <strong>Binary Sequence</strong> output (green) to <strong>NRZ Encoder</strong> input (red)</li>
+            <li>Connect <strong>NRZ Encoder</strong> output to <strong>XOR Gate</strong> (top input)</li>
+            <li>Connect <strong>PN Generator</strong> output to <strong>XOR Gate</strong> (bottom input)</li>
+            <li>Connect <strong>XOR Gate</strong> output to <strong>BPSK Modulator</strong> (data input)</li>
+            <li>Connect <strong>Carrier Generator</strong> output to <strong>BPSK Modulator</strong> (carrier input)</li>
+            <li>Connect <strong>BPSK Modulator</strong> output to <strong>Output Signal</strong> input</li>
+        </ol>
+        <p><strong>Tip:</strong> Click on green output connectors first, then red input connectors to make connections.</p>
     </div>
-
+    
+    <div id="circuit-container">
+        <!-- Components will be added here by JavaScript -->
+    </div>
+    
+    <div id="oscilloscope">
+        <canvas id="scopeCanvas" width="900" height="350"></canvas>
+        <div class="oscilloscope-controls">
+            <label>Time Scale:</label>
+            <input type="range" id="timeScale" min="1" max="10" value="5">
+            <label>Amplitude Scale:</label>
+            <input type="range" id="ampScale" min="1" max="10" value="5">
+        </div>
+    </div>
   <!-- Add JS at the bottom of HTML file --> 
         <script src="./js/main.js"></script>
 </body>
