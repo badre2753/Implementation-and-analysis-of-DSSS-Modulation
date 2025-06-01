@@ -89,7 +89,7 @@ const components = [
             if (isPoweredOn) {
                 powerButton.textContent = 'POWER ON';
                 powerButton.classList.add('on');
-                document.getElementById('status').textContent = 'System is ON - Set your parameters';
+                document.getElementById('status').textContent = 'System is ON - Set your parameters & Click On UPDATE';
                 document.getElementById('inputControls').style.display = 'block';
                 document.getElementById('connectionControls').style.display = 'none';
                 document.getElementById('oscilloscope').style.display = 'none';
