@@ -17,3 +17,9 @@ Protects against signal jamming.
 Improves voice quality.
 
 Is less affected by noise and can work over longer distances.
+
+
+wave form of modulated signal-
+
+![Screenshot 2025-06-02 084507](https://github.com/user-attachments/assets/dfbd1e35-04b6-4067-9c6b-63d4574ca0a5)
+
