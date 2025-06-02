@@ -20,4 +20,5 @@ BPSK TO SPREAD CODE MODULATED SIGNAL
 
 BLOCK DIAGRAM:
 
-![BINARY INPUT (1)](https://github.com/user-attachments/assets/352fd61a-3e4f-4fb1-b4e2-5961b2a3eacc)
+![BINARY INPUT (2)](https://github.com/user-attachments/assets/5f7ae27f-998e-455d-953b-b9f1cf6b6311)
+
