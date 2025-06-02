@@ -23,3 +23,9 @@ wave form of modulated signal-
 
 ![Screenshot 2025-06-02 084507](https://github.com/user-attachments/assets/dfbd1e35-04b6-4067-9c6b-63d4574ca0a5)
 
+
+
+CONCLUSION:
+
+We used message signal modulated by BPSK modulation technique. Every message bit represented by different number of pseudo-number code for performance evaluation to see their effect. We multiplied message signal and randomly generated pseudo-random sequence and obtained signal with spread spectrum
+
