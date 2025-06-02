@@ -4,7 +4,7 @@
     {
       "question": "What is the main operation performed in DSSS (Direct Sequence Spread Spectrum) technique??",
       "answers": {
-        "a": "Only increasing the frequency of the signal",
+        "a": "To encrypt the data",
         "b": " Compressing the signal in time",
         "c": "Multiplying the data signal with a high-rate chip signal",
         "d": "Transmitting the signal on a single frequency only"
@@ -19,7 +19,7 @@
       "difficulty": "beginner"
     },
     {
-      "question": "What is the primary benefit of using DSSS??",
+      "question": "What is the primary benefit of using DSSS?",
       "answers": {
         "a": "Reduced data rate",
         "b": "Increased power consumption",

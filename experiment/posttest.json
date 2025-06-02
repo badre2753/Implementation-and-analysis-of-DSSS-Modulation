@@ -5,8 +5,8 @@
       "question": "What is the main function of the spreading code in DSSS?",
       "answers": {
         "a": "To encrypt the data",
-        "b": " To convert the signal into a narrowband signal",
-        "c": " To spread the signal bandwidth and reduce interference",
+        "b": "To spread the signal bandwidth and reduce interference ",
+        "c": " To convert the signal into a narrowband signal",
         "d": "To increase the amplitude of the signal"
       },
       "explanations": {
@@ -15,11 +15,11 @@
         "c": "Explanation 2",
         "d": "Explanation 2"
       },
-      "correctAnswer": "c",
+      "correctAnswer": "b",
       "difficulty": "beginner"
     },
     {
-      "question": "During the spreading process in DSSS, how are data bits typically represented??",
+      "question": "During the spreading process in DSSS, how are data bits typically represented?",
       "answers": {
         "a": "As only 1s and 0s",
         "b": "As analog voltage levels" ,
