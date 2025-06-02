@@ -15,7 +15,7 @@ const components = [
                           { x: 600, y: 225, type: 'output', id: 'pskOut' }] },
             { id: 'pnGenerator', name: 'PN Code Generator', x: 200, y: 350, width: 120, height: 60, 
               connectors: [{ x: 340, y: 382, type: 'output', id: 'pnOut' }] },
-            { id: 'outputSignal', name: 'Spread & Modulted Signal', x: 700, y: 200, width: 100, height: 60, 
+            { id: 'outputSignal', name: 'Spread & Modulated Signal', x: 700, y: 200, width: 100, height: 60, 
               connectors: [{ x: 700, y: 230, type: 'input', id: 'signalIn' }] }
         ];
 
