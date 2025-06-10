@@ -1,22 +1,8 @@
-AIM:
+
 To study generation(spreading)  of DSSS modulated
 signal
 
-APPARATUS REQUIRED:
 
-PN CODE  GENERATOR 
-
-NRZ ENCODER
-
-XOR GATE 
-
-CARRIER GENERATOR
-
-BPSK MODULATOR 
-
-CONNECTING WIRES 
-
- POWER SUPPLY 
 
 
 
